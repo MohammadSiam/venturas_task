@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useApp } from "../hooks/useApp";
 import MurmurCard from "../components/MurmurCard";
 import MurmurForm from "../components/MurmurForm";
+import UserSearch from "../components/UserSearch";
 import Pagination from "../components/Pagination";
 
 const Timeline: React.FC = () => {
@@ -27,6 +28,8 @@ const Timeline: React.FC = () => {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Timeline</h1>
+
+      <UserSearch />
 
       <MurmurForm />
 

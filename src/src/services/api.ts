@@ -72,6 +72,13 @@ export const usersAPI = {
     const response = await api.get(`/users/${id}/followers`);
     return response.data;
   },
+
+  search: async (query: string): Promise<User[]> => {
+    const response = await api.get(
+      `/users/search/${encodeURIComponent(query)}/with-follow-status`
+    );
+    return response.data;
+  },
 };
 
 // Murmurs API

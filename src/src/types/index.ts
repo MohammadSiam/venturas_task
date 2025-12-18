@@ -6,6 +6,7 @@ export interface User {
   followingCount?: number;
   followersCount?: number;
   murmursCount?: number;
+  isFollowing?: boolean;
 }
 
 export interface Murmur {

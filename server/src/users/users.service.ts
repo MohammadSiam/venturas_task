@@ -131,6 +131,47 @@ export class UsersService {
     return !!follow;
   }
 
+  async searchUsers(query: string): Promise<UserResponseDto[]> {
+    const users = await this.usersRepository
+      .createQueryBuilder("user")
+      .where("user.username LIKE :query OR user.name LIKE :query", {
+        query: `%${query}%`,
+      })
+      .limit(10)
+      .getMany();
+
+    return Promise.all(
+      users.map((user) => this.toUserResponseWithCounts(user))
+    );
+  }
+
+  async searchUsersWithFollowStatus(
+    query: string,
+    currentUserId: number
+  ): Promise<UserResponseDto[]> {
+    const users = await this.usersRepository
+      .createQueryBuilder("user")
+      .where("user.username LIKE :query OR user.name LIKE :query", {
+        query: `%${query}%`,
+      })
+      .andWhere("user.id != :currentUserId", { currentUserId })
+      .limit(10)
+      .getMany();
+
+    const usersWithFollowStatus = await Promise.all(
+      users.map(async (user) => {
+        const userResponse = await this.toUserResponseWithCounts(user);
+        const isFollowing = await this.isFollowing(currentUserId, user.id);
+        return {
+          ...userResponse,
+          isFollowing,
+        };
+      })
+    );
+
+    return usersWithFollowStatus;
+  }
+
   private toUserResponse(user: User): UserResponseDto {
     return {
       id: user.id,

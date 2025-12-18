@@ -6,4 +6,5 @@ export class UserResponseDto {
   followingCount?: number;
   followersCount?: number;
   murmursCount?: number;
+  isFollowing?: boolean;
 }
