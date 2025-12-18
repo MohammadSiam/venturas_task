@@ -1,14 +1,25 @@
-import { useState } from 'react'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AppProvider } from "./context/AppContext";
+import Layout from "./components/Layout";
+import Timeline from "./pages/Timeline";
+import MurmurDetail from "./pages/MurmurDetail";
+import UserProfile from "./pages/UserProfile";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <h1 className='bg-red-500'>Vite + React</h1>
-    </>
-  )
+    <AppProvider>
+      <Router>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Timeline />} />
+            <Route path="/murmur/:id" element={<MurmurDetail />} />
+            <Route path="/user/:id" element={<UserProfile />} />
+          </Routes>
+        </Layout>
+      </Router>
+    </AppProvider>
+  );
 }
 
-export default App
+export default App;
