@@ -43,6 +43,15 @@ export const authAPI = {
 
 // Users API
 export const usersAPI = {
+  create: async (userData: {
+    username: string;
+    name: string;
+    password: string;
+  }) => {
+    const response = await api.post("/users", userData);
+    return response.data;
+  },
+
   getAll: async (): Promise<User[]> => {
     const response = await api.get("/users");
     return response.data;

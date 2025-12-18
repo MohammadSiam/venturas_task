@@ -3,7 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { AppProvider } from "./context/AppContext";
 import { useAuth } from "./hooks/useAuth";
 import Layout from "./components/Layout";
-import LoginForm from "./components/LoginForm";
+import AuthWrapper from "./components/AuthWrapper";
 import Timeline from "./pages/Timeline";
 import MurmurDetail from "./pages/MurmurDetail";
 import UserProfile from "./pages/UserProfile";
@@ -21,7 +21,7 @@ function AppContent() {
   }
 
   if (!user) {
-    return <LoginForm />;
+    return <AuthWrapper />;
   }
 
   return (
