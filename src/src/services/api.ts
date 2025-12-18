@@ -92,12 +92,12 @@ export const usersAPI = {
 
 // Murmurs API
 export const murmursAPI = {
-  getAll: async (page = 1, limit = 10): Promise<Murmur[]> => {
+  getAll: async (page = 1, limit = 10) => {
     const response = await api.get(`/murmurs?page=${page}&limit=${limit}`);
     return response.data;
   },
 
-  getTimeline: async (page = 1, limit = 10): Promise<Murmur[]> => {
+  getTimeline: async (page = 1, limit = 10) => {
     const response = await api.get(
       `/murmurs/timeline?page=${page}&limit=${limit}`
     );
@@ -109,11 +109,7 @@ export const murmursAPI = {
     return response.data;
   },
 
-  getByUser: async (
-    userId: number,
-    page = 1,
-    limit = 10
-  ): Promise<Murmur[]> => {
+  getByUser: async (userId: number, page = 1, limit = 10) => {
     const response = await api.get(
       `/murmurs/user/${userId}?page=${page}&limit=${limit}`
     );

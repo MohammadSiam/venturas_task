@@ -42,26 +42,46 @@ export class MurmursService {
     currentUserId?: number,
     page = 1,
     limit = 10
-  ): Promise<MurmurResponseDto[]> {
+  ): Promise<{
+    murmurs: MurmurResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const skip = (page - 1) * limit;
 
-    const murmurs = await this.murmursRepository.find({
+    const [murmurs, total] = await this.murmursRepository.findAndCount({
       relations: ["user"],
       order: { createdAt: "DESC" },
       skip,
       take: limit,
     });
 
-    return Promise.all(
+    const murmurResponses = await Promise.all(
       murmurs.map((murmur) => this.toMurmurResponse(murmur, currentUserId))
     );
+
+    return {
+      murmurs: murmurResponses,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findTimeline(
     userId: number,
     page = 1,
     limit = 10
-  ): Promise<MurmurResponseDto[]> {
+  ): Promise<{
+    murmurs: MurmurResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const skip = (page - 1) * limit;
 
     // Get users that the current user follows
@@ -73,18 +93,26 @@ export class MurmursService {
     const followingIds = follows.map((follow) => follow.followingId);
     followingIds.push(userId); // Include own murmurs
 
-    const murmurs = await this.murmursRepository
+    const [murmurs, total] = await this.murmursRepository
       .createQueryBuilder("murmur")
       .leftJoinAndSelect("murmur.user", "user")
       .where("murmur.userId IN (:...followingIds)", { followingIds })
       .orderBy("murmur.createdAt", "DESC")
       .skip(skip)
       .take(limit)
-      .getMany();
+      .getManyAndCount();
 
-    return Promise.all(
+    const murmurResponses = await Promise.all(
       murmurs.map((murmur) => this.toMurmurResponse(murmur, userId))
     );
+
+    return {
+      murmurs: murmurResponses,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(
@@ -108,10 +136,16 @@ export class MurmursService {
     currentUserId?: number,
     page = 1,
     limit = 10
-  ): Promise<MurmurResponseDto[]> {
+  ): Promise<{
+    murmurs: MurmurResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const skip = (page - 1) * limit;
 
-    const murmurs = await this.murmursRepository.find({
+    const [murmurs, total] = await this.murmursRepository.findAndCount({
       where: { userId },
       relations: ["user"],
       order: { createdAt: "DESC" },
@@ -119,9 +153,17 @@ export class MurmursService {
       take: limit,
     });
 
-    return Promise.all(
+    const murmurResponses = await Promise.all(
       murmurs.map((murmur) => this.toMurmurResponse(murmur, currentUserId))
     );
+
+    return {
+      murmurs: murmurResponses,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async delete(id: number, userId: number): Promise<void> {

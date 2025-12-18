@@ -11,6 +11,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
   const [users, setUsers] = useState<User[]>([]);
   const [murmurs, setMurmurs] = useState<Murmur[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
   const { user: currentUser } = useAuth();
 
   const refreshUsers = useCallback(async () => {
@@ -22,23 +28,34 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
   }, []);
 
-  const refreshMurmurs = useCallback(async () => {
-    try {
-      setLoading(true);
-      if (currentUser) {
-        // Get all murmurs instead of just timeline (followed users)
-        const murmursData = await murmursAPI.getAll();
-        setMurmurs(murmursData);
-      } else {
+  const refreshMurmurs = useCallback(
+    async (page = 1, limit = 10) => {
+      try {
+        setLoading(true);
+        if (currentUser) {
+          // Get all murmurs with pagination
+          const response = await murmursAPI.getAll(page, limit);
+          setMurmurs(response.murmurs);
+          setPagination({
+            page: response.page,
+            limit: response.limit,
+            total: response.total,
+            totalPages: response.totalPages,
+          });
+        } else {
+          setMurmurs([]);
+          setPagination({ page: 1, limit: 10, total: 0, totalPages: 0 });
+        }
+      } catch (error) {
+        console.error("Failed to fetch murmurs:", error);
         setMurmurs([]);
+        setPagination({ page: 1, limit: 10, total: 0, totalPages: 0 });
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to fetch murmurs:", error);
-      setMurmurs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUser]);
+    },
+    [currentUser]
+  );
 
   useEffect(() => {
     const initializeData = async () => {
@@ -59,11 +76,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       throw new Error("User must be authenticated to create murmurs");
     }
     try {
-      const newMurmur = await murmursAPI.create(content);
-      // Add the new murmur to the top of the list immediately for instant feedback
-      setMurmurs((prev) => [newMurmur, ...prev]);
-      // Also refresh the full list to ensure consistency with all murmurs
-      await refreshMurmurs();
+      await murmursAPI.create(content);
+      // Refresh the first page to show the new murmur
+      await refreshMurmurs(1, pagination.limit);
     } catch (error) {
       console.error("Failed to create murmur:", error);
       throw error;
@@ -89,8 +104,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
     try {
       await murmursAPI.toggleLike(murmurId);
-      // Refresh murmurs to get updated like status
-      await refreshMurmurs();
+      // Refresh current page to get updated like status
+      await refreshMurmurs(pagination.page, pagination.limit);
     } catch (error) {
       console.error("Failed to toggle like:", error);
       throw error;
@@ -103,7 +118,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
     try {
       await usersAPI.follow(userId);
-      await Promise.all([refreshUsers(), refreshMurmurs()]);
+      await Promise.all([
+        refreshUsers(),
+        refreshMurmurs(pagination.page, pagination.limit),
+      ]);
     } catch (error) {
       console.error("Failed to follow user:", error);
       throw error;
@@ -116,7 +134,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
     try {
       await usersAPI.unfollow(userId);
-      await Promise.all([refreshUsers(), refreshMurmurs()]);
+      await Promise.all([
+        refreshUsers(),
+        refreshMurmurs(pagination.page, pagination.limit),
+      ]);
     } catch (error) {
       console.error("Failed to unfollow user:", error);
       throw error;
@@ -129,6 +150,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
         users,
         murmurs,
         loading,
+        pagination,
         addMurmur,
         deleteMurmur,
         toggleLike,

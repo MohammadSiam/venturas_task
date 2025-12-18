@@ -6,18 +6,9 @@ import UserSearch from "../components/UserSearch";
 import Pagination from "../components/Pagination";
 
 const Timeline: React.FC = () => {
-  const { murmurs, loading, refreshMurmurs } = useApp();
-  const [currentPage, setCurrentPage] = useState(1);
+  const { murmurs, loading, pagination, refreshMurmurs } = useApp();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const murmursPerPage = 10;
-
-  const totalPages = Math.ceil(murmurs.length / murmursPerPage);
-  const startIndex = (currentPage - 1) * murmursPerPage;
-  const paginatedMurmurs = murmurs.slice(
-    startIndex,
-    startIndex + murmursPerPage
-  );
 
   // Set initial last updated time when murmurs load
   useEffect(() => {
@@ -29,11 +20,15 @@ const Timeline: React.FC = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshMurmurs();
+      await refreshMurmurs(pagination.page, pagination.limit);
       setLastUpdated(new Date());
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handlePageChange = async (page: number) => {
+    await refreshMurmurs(page, pagination.limit);
   };
 
   if (loading) {
@@ -81,7 +76,7 @@ const Timeline: React.FC = () => {
 
       <MurmurForm />
 
-      {paginatedMurmurs.length === 0 ? (
+      {murmurs.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500">
             No murmurs yet. Be the first to post something!
@@ -90,15 +85,15 @@ const Timeline: React.FC = () => {
       ) : (
         <>
           <div className="space-y-4">
-            {paginatedMurmurs.map((murmur) => (
+            {murmurs.map((murmur) => (
               <MurmurCard key={murmur.id} murmur={murmur} />
             ))}
           </div>
 
           <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePageChange}
           />
         </>
       )}

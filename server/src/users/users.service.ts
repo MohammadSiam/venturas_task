@@ -7,6 +7,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { User } from "../entities/user.entity";
 import { Follow } from "../entities/follow.entity";
+import { Murmur } from "../entities/murmur.entity";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import * as bcrypt from "bcrypt";
@@ -17,7 +18,9 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     @InjectRepository(Follow)
-    private followsRepository: Repository<Follow>
+    private followsRepository: Repository<Follow>,
+    @InjectRepository(Murmur)
+    private murmursRepository: Repository<Murmur>
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
@@ -185,11 +188,7 @@ export class UsersService {
     const [followingCount, followersCount, murmursCount] = await Promise.all([
       this.followsRepository.count({ where: { followerId: user.id } }),
       this.followsRepository.count({ where: { followingId: user.id } }),
-      this.usersRepository
-        .createQueryBuilder("user")
-        .leftJoin("user.murmurs", "murmur")
-        .where("user.id = :id", { id: user.id })
-        .getCount(),
+      this.murmursRepository.count({ where: { userId: user.id } }),
     ]);
 
     return {

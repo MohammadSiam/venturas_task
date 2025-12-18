@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { useApp } from "../hooks/useApp";
 import { useAuth } from "../hooks/useAuth";
@@ -11,28 +11,38 @@ const UserProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { followUser, unfollowUser } = useApp();
   const { user: currentUser } = useAuth();
-  const [currentPage, setCurrentPage] = useState(1);
   const [user, setUser] = useState<User | null>(null);
   const [userMurmurs, setUserMurmurs] = useState<Murmur[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const murmursPerPage = 10;
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
 
   const isOwnProfile = currentUser?.id === Number(id);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
+  const fetchUserData = useCallback(
+    async (page = 1, limit = 10) => {
       if (!id) return;
 
       try {
         setLoading(true);
-        const [userData, murmursData] = await Promise.all([
+        const [userData, murmursResponse] = await Promise.all([
           usersAPI.getById(Number(id)),
-          murmursAPI.getByUser(Number(id)),
+          murmursAPI.getByUser(Number(id), page, limit),
         ]);
 
         setUser(userData);
-        setUserMurmurs(murmursData);
+        setUserMurmurs(murmursResponse.murmurs);
+        setPagination({
+          page: murmursResponse.page,
+          limit: murmursResponse.limit,
+          total: murmursResponse.total,
+          totalPages: murmursResponse.totalPages,
+        });
 
         // Check if current user is following this user
         if (currentUser && currentUser.id !== Number(id)) {
@@ -45,17 +55,17 @@ const UserProfile: React.FC = () => {
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchUserData();
-  }, [id, currentUser]);
-
-  const totalPages = Math.ceil(userMurmurs.length / murmursPerPage);
-  const startIndex = (currentPage - 1) * murmursPerPage;
-  const paginatedMurmurs = userMurmurs.slice(
-    startIndex,
-    startIndex + murmursPerPage
+    },
+    [id, currentUser]
   );
+
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
+
+  const handlePageChange = async (page: number) => {
+    await fetchUserData(page, pagination.limit);
+  };
 
   const handleFollowToggle = async () => {
     if (!currentUser || !user) return;
@@ -132,7 +142,7 @@ const UserProfile: React.FC = () => {
           </div>
           <div>
             <span className="font-semibold text-gray-900">
-              {user.murmursCount || userMurmurs.length}
+              {user.murmursCount || pagination.total}
             </span>
             <span className="text-gray-600 ml-1">Murmurs</span>
           </div>
@@ -144,7 +154,7 @@ const UserProfile: React.FC = () => {
           {isOwnProfile ? "Your Murmurs" : `${user.name}'s Murmurs`}
         </h2>
 
-        {paginatedMurmurs.length === 0 ? (
+        {userMurmurs.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">
               {isOwnProfile
@@ -155,7 +165,7 @@ const UserProfile: React.FC = () => {
         ) : (
           <>
             <div className="space-y-4">
-              {paginatedMurmurs.map((murmur) => (
+              {userMurmurs.map((murmur) => (
                 <MurmurCard
                   key={murmur.id}
                   murmur={murmur}
@@ -165,9 +175,9 @@ const UserProfile: React.FC = () => {
             </div>
 
             <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
             />
           </>
         )}
