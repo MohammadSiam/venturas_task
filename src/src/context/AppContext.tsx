@@ -26,6 +26,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     try {
       setLoading(true);
       if (currentUser) {
+        // Get all murmurs instead of just timeline (followed users)
         const murmursData = await murmursAPI.getTimeline();
         setMurmurs(murmursData);
       } else {
@@ -59,7 +60,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
     }
     try {
       const newMurmur = await murmursAPI.create(content);
+      // Add the new murmur to the top of the list immediately for instant feedback
       setMurmurs((prev) => [newMurmur, ...prev]);
+      // Also refresh the full list to ensure consistency with all murmurs
+      await refreshMurmurs();
     } catch (error) {
       console.error("Failed to create murmur:", error);
       throw error;
