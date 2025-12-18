@@ -27,7 +27,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({
       setLoading(true);
       if (currentUser) {
         // Get all murmurs instead of just timeline (followed users)
-        const murmursData = await murmursAPI.getTimeline();
+        const murmursData = await murmursAPI.getAll();
         setMurmurs(murmursData);
       } else {
         setMurmurs([]);
