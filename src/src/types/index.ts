@@ -18,3 +18,10 @@ export interface Murmur {
   likesCount: number;
   isLiked?: boolean;
 }
+
+export interface PaginationData {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}

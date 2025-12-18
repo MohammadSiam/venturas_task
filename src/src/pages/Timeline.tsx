@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { useApp } from "../hooks/useApp";
+import { useTimeline } from "../hooks/useTimeline";
 import MurmurCard from "../components/MurmurCard";
 import MurmurForm from "../components/MurmurForm";
 import UserSearch from "../components/UserSearch";
 import Pagination from "../components/Pagination";
 
 const Timeline: React.FC = () => {
-  const { murmurs, loading, pagination, refreshMurmurs } = useApp();
+  const {
+    murmurs,
+    loading,
+    pagination,
+    fetchMurmurs,
+    refreshMurmurs,
+    createMurmur,
+    toggleLike,
+    deleteMurmur,
+  } = useTimeline();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -20,7 +29,7 @@ const Timeline: React.FC = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await refreshMurmurs(pagination.page, pagination.limit);
+      await refreshMurmurs();
       setLastUpdated(new Date());
     } finally {
       setIsRefreshing(false);
@@ -28,7 +37,7 @@ const Timeline: React.FC = () => {
   };
 
   const handlePageChange = async (page: number) => {
-    await refreshMurmurs(page, pagination.limit);
+    await fetchMurmurs(page, pagination.limit);
   };
 
   if (loading) {
@@ -74,7 +83,7 @@ const Timeline: React.FC = () => {
 
       <UserSearch />
 
-      <MurmurForm />
+      <MurmurForm onCreateMurmur={createMurmur} />
 
       {murmurs.length === 0 ? (
         <div className="text-center py-12">
@@ -86,7 +95,12 @@ const Timeline: React.FC = () => {
         <>
           <div className="space-y-4">
             {murmurs.map((murmur) => (
-              <MurmurCard key={murmur.id} murmur={murmur} />
+              <MurmurCard
+                key={murmur.id}
+                murmur={murmur}
+                onToggleLike={toggleLike}
+                onDeleteMurmur={deleteMurmur}
+              />
             ))}
           </div>
 

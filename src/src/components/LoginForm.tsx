@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { authAPI } from "../services/api";
+import { authUtils } from "../utils/auth";
 
 // Type guard for axios errors
 interface AxiosError extends Error {
@@ -30,7 +31,18 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+
+  const handleLogin = async (loginUsername: string, loginPassword: string) => {
+    try {
+      const response = await authAPI.login(loginUsername, loginPassword);
+      const { access_token, user: userData } = response;
+
+      authUtils.setAuth(access_token, userData);
+      window.location.reload(); // Simple way to reset app state
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +50,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     setIsLoading(true);
 
     try {
-      await login(username, password);
+      await handleLogin(username, password);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -59,7 +71,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
     setIsLoading(true);
 
     try {
-      await login(demoUsername, "password123");
+      await handleLogin(demoUsername, "password123");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

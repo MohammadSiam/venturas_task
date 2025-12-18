@@ -1,20 +1,22 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import type { Murmur } from "../types";
-import { useApp } from "../hooks/useApp";
-import { useAuth } from "../hooks/useAuth";
+import { authUtils } from "../utils/auth";
 
 interface MurmurCardProps {
   murmur: Murmur;
   showActions?: boolean;
+  onToggleLike?: (murmurId: number) => Promise<void>;
+  onDeleteMurmur?: (murmurId: number) => Promise<void>;
 }
 
 const MurmurCard: React.FC<MurmurCardProps> = ({
   murmur,
   showActions = true,
+  onToggleLike,
+  onDeleteMurmur,
 }) => {
-  const { toggleLike, deleteMurmur } = useApp();
-  const { user: currentUser } = useAuth();
+  const currentUser = authUtils.getUser();
 
   const author = murmur.user;
   const isLiked = murmur.isLiked || false;
@@ -31,17 +33,19 @@ const MurmurCard: React.FC<MurmurCardProps> = ({
   };
 
   const handleToggleLike = async () => {
+    if (!onToggleLike) return;
     try {
-      await toggleLike(murmur.id);
+      await onToggleLike(murmur.id);
     } catch (error) {
       console.error("Failed to toggle like:", error);
     }
   };
 
   const handleDelete = async () => {
+    if (!onDeleteMurmur) return;
     if (window.confirm("Are you sure you want to delete this murmur?")) {
       try {
-        await deleteMurmur(murmur.id);
+        await onDeleteMurmur(murmur.id);
       } catch (error) {
         console.error("Failed to delete murmur:", error);
       }

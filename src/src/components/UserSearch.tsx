@@ -1,55 +1,44 @@
 import React, { useState, useEffect } from "react";
-import { usersAPI } from "../services/api";
-import { useAuth } from "../hooks/useAuth";
-import { useApp } from "../hooks/useApp";
+import { authUtils } from "../utils/auth";
+import { useUserSearch } from "../hooks/useUserSearch";
 import type { User } from "../types";
 
 const UserSearch: React.FC = () => {
   const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const { user: currentUser } = useAuth();
-  const { followUser, unfollowUser } = useApp();
+  const currentUser = authUtils.getUser();
+  const {
+    searchResults,
+    loading: isSearching,
+    searchUsers,
+    followUser,
+    unfollowUser,
+    clearResults,
+  } = useUserSearch();
 
   useEffect(() => {
-    const searchUsers = async () => {
+    const performSearch = async () => {
       if (query.trim().length < 2) {
-        setSearchResults([]);
+        clearResults();
         setShowResults(false);
         return;
       }
 
-      setIsSearching(true);
       try {
-        const results = await usersAPI.search(query.trim());
-        // Filter out current user from results
-        const filteredResults = results.filter(
-          (user) => user.id !== currentUser?.id
-        );
-        setSearchResults(filteredResults);
+        await searchUsers(query.trim(), currentUser?.id);
         setShowResults(true);
       } catch (error) {
         console.error("Search failed:", error);
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
       }
     };
 
-    const debounceTimer = setTimeout(searchUsers, 300);
+    const debounceTimer = setTimeout(performSearch, 300);
     return () => clearTimeout(debounceTimer);
-  }, [query, currentUser?.id]);
+  }, [query, currentUser?.id, searchUsers, clearResults]);
 
   const handleFollow = async (userId: number) => {
     try {
       await followUser(userId);
-      // Update the search results to reflect the new follow status
-      const updatedResults = await usersAPI.search(query.trim());
-      const filteredResults = updatedResults.filter(
-        (user) => user.id !== currentUser?.id
-      );
-      setSearchResults(filteredResults);
     } catch (error) {
       console.error("Failed to follow user:", error);
     }
@@ -58,12 +47,6 @@ const UserSearch: React.FC = () => {
   const handleUnfollow = async (userId: number) => {
     try {
       await unfollowUser(userId);
-      // Update the search results to reflect the new follow status
-      const updatedResults = await usersAPI.search(query.trim());
-      const filteredResults = updatedResults.filter(
-        (user) => user.id !== currentUser?.id
-      );
-      setSearchResults(filteredResults);
     } catch (error) {
       console.error("Failed to unfollow user:", error);
     }

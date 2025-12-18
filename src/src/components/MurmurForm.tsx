@@ -1,19 +1,21 @@
 import React, { useState } from "react";
-import { useApp } from "../hooks/useApp";
-import { useAuth } from "../hooks/useAuth";
+import { authUtils } from "../utils/auth";
 
-const MurmurForm: React.FC = () => {
+interface MurmurFormProps {
+  onCreateMurmur: (content: string) => Promise<unknown>;
+}
+
+const MurmurForm: React.FC<MurmurFormProps> = ({ onCreateMurmur }) => {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addMurmur } = useApp();
-  const { user: currentUser } = useAuth();
+  const currentUser = authUtils.getUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (content.trim() && currentUser && !isSubmitting) {
       setIsSubmitting(true);
       try {
-        await addMurmur(content.trim());
+        await onCreateMurmur(content.trim());
         setContent("");
       } catch (error) {
         console.error("Failed to create murmur:", error);

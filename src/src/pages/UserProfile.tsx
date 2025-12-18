@@ -1,67 +1,27 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
 import { useParams, Navigate } from "react-router-dom";
-import { useApp } from "../hooks/useApp";
-import { useAuth } from "../hooks/useAuth";
-import { usersAPI, murmursAPI } from "../services/api";
+import { useUserProfile } from "../hooks/useUserProfile";
+import { authUtils } from "../utils/auth";
 import MurmurCard from "../components/MurmurCard";
 import Pagination from "../components/Pagination";
-import type { User, Murmur } from "../types";
 
 const UserProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { followUser, unfollowUser } = useApp();
-  const { user: currentUser } = useAuth();
-  const [user, setUser] = useState<User | null>(null);
-  const [userMurmurs, setUserMurmurs] = useState<Murmur[]>([]);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 10,
-    total: 0,
-    totalPages: 0,
-  });
+  const currentUser = authUtils.getUser();
+  const {
+    user,
+    userMurmurs,
+    pagination,
+    loading,
+    fetchUserData,
+    followUser: handleFollowUser,
+    unfollowUser: handleUnfollowUser,
+    toggleLike,
+    deleteMurmur,
+  } = useUserProfile(Number(id));
 
   const isOwnProfile = currentUser?.id === Number(id);
-
-  const fetchUserData = useCallback(
-    async (page = 1, limit = 10) => {
-      if (!id) return;
-
-      try {
-        setLoading(true);
-        const [userData, murmursResponse] = await Promise.all([
-          usersAPI.getById(Number(id)),
-          murmursAPI.getByUser(Number(id), page, limit),
-        ]);
-
-        setUser(userData);
-        setUserMurmurs(murmursResponse.murmurs);
-        setPagination({
-          page: murmursResponse.page,
-          limit: murmursResponse.limit,
-          total: murmursResponse.total,
-          totalPages: murmursResponse.totalPages,
-        });
-
-        // Check if current user is following this user
-        if (currentUser && currentUser.id !== Number(id)) {
-          // This would need to be implemented in the API
-          // For now, we'll assume not following
-          setIsFollowing(false);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user data:", error);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [id, currentUser]
-  );
-
-  useEffect(() => {
-    fetchUserData();
-  }, [fetchUserData]);
+  const isFollowing = user?.isFollowing || false;
 
   const handlePageChange = async (page: number) => {
     await fetchUserData(page, pagination.limit);
@@ -72,16 +32,10 @@ const UserProfile: React.FC = () => {
 
     try {
       if (isFollowing) {
-        await unfollowUser(user.id);
-        setIsFollowing(false);
+        await handleUnfollowUser();
       } else {
-        await followUser(user.id);
-        setIsFollowing(true);
+        await handleFollowUser();
       }
-
-      // Refresh user data to get updated counts
-      const userData = await usersAPI.getById(user.id);
-      setUser(userData);
     } catch (error) {
       console.error("Failed to toggle follow:", error);
     }
@@ -170,6 +124,8 @@ const UserProfile: React.FC = () => {
                   key={murmur.id}
                   murmur={murmur}
                   showActions={true}
+                  onToggleLike={toggleLike}
+                  onDeleteMurmur={deleteMurmur}
                 />
               ))}
             </div>
