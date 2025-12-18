@@ -1,8 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { Follow } from '../entities/follow.entity';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { User } from "../entities/user.entity";
+import { Follow } from "../entities/follow.entity";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { UserResponseDto } from "./dto/user-response.dto";
+import * as bcrypt from "bcrypt";
 
 @Injectable()
 export class UsersService {
@@ -10,76 +17,145 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     @InjectRepository(Follow)
-    private followsRepository: Repository<Follow>,
+    private followsRepository: Repository<Follow>
   ) {}
 
-  async findOne(username: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { username } });
-  }
-  
-  async findOneWithPassword(username: string): Promise<User | null> {
-      return this.usersRepository.findOne({ 
-          where: { username },
-          select: ['id', 'username', 'password']
-      });
+  async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
+    const existingUser = await this.usersRepository.findOne({
+      where: { username: createUserDto.username },
+    });
+
+    if (existingUser) {
+      throw new ConflictException("Username already exists");
+    }
+
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
+    const user = this.usersRepository.create({
+      ...createUserDto,
+      password: hashedPassword,
+    });
+
+    const savedUser = await this.usersRepository.save(user);
+    return this.toUserResponse(savedUser);
   }
 
-  async findById(id: number): Promise<User> {
+  async findAll(): Promise<UserResponseDto[]> {
+    const users = await this.usersRepository.find();
+    return Promise.all(
+      users.map((user) => this.toUserResponseWithCounts(user))
+    );
+  }
+
+  async findOne(id: number): Promise<UserResponseDto> {
     const user = await this.usersRepository.findOne({ where: { id } });
-    if (!user) throw new NotFoundException('User not found');
-    return user;
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+    return this.toUserResponseWithCounts(user);
   }
 
-  async create(user: Partial<User>): Promise<User> {
-    const newUser = this.usersRepository.create(user);
-    return this.usersRepository.save(newUser);
+  async findByUsername(username: string): Promise<User | null> {
+    return this.usersRepository.findOne({
+      where: { username },
+      select: ["id", "username", "name", "password", "createdAt"],
+    });
   }
 
   async follow(followerId: number, followingId: number): Promise<void> {
-    if (followerId === followingId) return;
-    const existing = await this.followsRepository.findOne({
-        where: { followerId, followingId }
+    if (followerId === followingId) {
+      throw new ConflictException("Cannot follow yourself");
+    }
+
+    const follower = await this.usersRepository.findOne({
+      where: { id: followerId },
     });
-    if (existing) return;
+    const following = await this.usersRepository.findOne({
+      where: { id: followingId },
+    });
+
+    if (!follower || !following) {
+      throw new NotFoundException("User not found");
+    }
+
+    const existingFollow = await this.followsRepository.findOne({
+      where: { followerId, followingId },
+    });
+
+    if (existingFollow) {
+      throw new ConflictException("Already following this user");
+    }
 
     const follow = this.followsRepository.create({ followerId, followingId });
     await this.followsRepository.save(follow);
   }
-  
+
   async unfollow(followerId: number, followingId: number): Promise<void> {
-      await this.followsRepository.delete({ followerId, followingId });
+    const follow = await this.followsRepository.findOne({
+      where: { followerId, followingId },
+    });
+
+    if (!follow) {
+      throw new NotFoundException("Follow relationship not found");
+    }
+
+    await this.followsRepository.remove(follow);
   }
 
-  async getProfile(currentUserId: number, userId: number) {
-      const user = await this.usersRepository.findOneOrFail({ where: { id: userId } });
-      const followingCount = await this.followsRepository.count({ where: { followerId: userId } });
-      const followersCount = await this.followsRepository.count({ where: { followingId: userId } });
-      
-      let isFollowing = false;
-      if (currentUserId) {
-          const follow = await this.followsRepository.findOne({ where: { followerId: currentUserId, followingId: userId }});
-          isFollowing = !!follow;
-      }
+  async getFollowing(userId: number): Promise<UserResponseDto[]> {
+    const follows = await this.followsRepository.find({
+      where: { followerId: userId },
+      relations: ["following"],
+    });
 
-      return {
-          ...user,
-          followingCount,
-          followersCount,
-          isFollowing
-      };
+    return Promise.all(
+      follows.map((follow) => this.toUserResponseWithCounts(follow.following))
+    );
   }
 
-  async getFollowers(userId: number) {
-      return this.followsRepository.find({
-          where: { followingId: userId },
-          relations: ['follower']
-      });
+  async getFollowers(userId: number): Promise<UserResponseDto[]> {
+    const follows = await this.followsRepository.find({
+      where: { followingId: userId },
+      relations: ["follower"],
+    });
+
+    return Promise.all(
+      follows.map((follow) => this.toUserResponseWithCounts(follow.follower))
+    );
   }
-  
-  async getFollowing(userId: number) {
-      return this.followsRepository.find({
-          where: { followerId: userId },
-          relations: ['following']
-      });
+
+  async isFollowing(followerId: number, followingId: number): Promise<boolean> {
+    const follow = await this.followsRepository.findOne({
+      where: { followerId, followingId },
+    });
+    return !!follow;
+  }
+
+  private toUserResponse(user: User): UserResponseDto {
+    return {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      createdAt: user.createdAt,
+    };
+  }
+
+  private async toUserResponseWithCounts(user: User): Promise<UserResponseDto> {
+    const [followingCount, followersCount, murmursCount] = await Promise.all([
+      this.followsRepository.count({ where: { followerId: user.id } }),
+      this.followsRepository.count({ where: { followingId: user.id } }),
+      this.usersRepository
+        .createQueryBuilder("user")
+        .leftJoin("user.murmurs", "murmur")
+        .where("user.id = :id", { id: user.id })
+        .getCount(),
+    ]);
+
+    return {
+      ...this.toUserResponse(user),
+      followingCount,
+      followersCount,
+      murmursCount,
+    };
   }
 }

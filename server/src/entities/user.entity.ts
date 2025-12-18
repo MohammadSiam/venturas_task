@@ -4,12 +4,12 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   OneToMany,
-} from 'typeorm';
-import { Murmur } from './murmur.entity';
-import { Like } from './like.entity';
-import { Follow } from './follow.entity';
+} from "typeorm";
+import { Murmur } from "./murmur.entity";
+import { Like } from "./like.entity";
+import { Follow } from "./follow.entity";
 
-@Entity('users')
+@Entity("users")
 export class User {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -17,10 +17,13 @@ export class User {
   @Column({ unique: true, length: 50 })
   username!: string;
 
+  @Column({ length: 100 })
+  name!: string;
+
   @Column({ select: false })
   password!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
 
   @OneToMany(() => Murmur, (murmur) => murmur.user)

@@ -2,14 +2,18 @@ export interface User {
   id: number;
   name: string;
   username: string;
-  followingIds: number[];
-  followerIds: number[];
+  createdAt: Date;
+  followingCount?: number;
+  followersCount?: number;
+  murmursCount?: number;
 }
 
 export interface Murmur {
   id: number;
   userId: number;
-  text: string;
+  content: string;
   createdAt: Date;
-  likedByUserIds: number[];
+  user?: User;
+  likesCount: number;
+  isLiked?: boolean;
 }

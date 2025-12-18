@@ -1,127 +1,137 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
 import type { User, Murmur } from "../types";
-import { initialUsers, initialMurmurs } from "../data/mockData";
+import { usersAPI, murmursAPI } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 import { AppContext } from "./AppContextDefinition";
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(initialUsers[0]);
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [murmurs, setMurmurs] = useState<Murmur[]>(initialMurmurs);
+  const [users, setUsers] = useState<User[]>([]);
+  const [murmurs, setMurmurs] = useState<Murmur[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user: currentUser } = useAuth();
 
-  const addMurmur = (text: string) => {
-    if (!currentUser) return;
+  const refreshUsers = useCallback(async () => {
+    try {
+      const usersData = await usersAPI.getAll();
+      setUsers(usersData);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    }
+  }, []);
 
-    const newMurmur: Murmur = {
-      id: Math.max(...murmurs.map((m) => m.id)) + 1,
-      userId: currentUser.id,
-      text,
-      createdAt: new Date(),
-      likedByUserIds: [],
+  const refreshMurmurs = useCallback(async () => {
+    try {
+      setLoading(true);
+      if (currentUser) {
+        const murmursData = await murmursAPI.getTimeline();
+        setMurmurs(murmursData);
+      } else {
+        setMurmurs([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch murmurs:", error);
+      setMurmurs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    const initializeData = async () => {
+      if (currentUser) {
+        await Promise.all([refreshUsers(), refreshMurmurs()]);
+      } else {
+        setLoading(false);
+        setUsers([]);
+        setMurmurs([]);
+      }
     };
 
-    setMurmurs((prev) => [newMurmur, ...prev]);
+    initializeData();
+  }, [currentUser, refreshUsers, refreshMurmurs]);
+
+  const addMurmur = async (content: string) => {
+    if (!currentUser) {
+      throw new Error("User must be authenticated to create murmurs");
+    }
+    try {
+      const newMurmur = await murmursAPI.create(content);
+      setMurmurs((prev) => [newMurmur, ...prev]);
+    } catch (error) {
+      console.error("Failed to create murmur:", error);
+      throw error;
+    }
   };
 
-  const deleteMurmur = (murmurId: number) => {
-    setMurmurs((prev) => prev.filter((m) => m.id !== murmurId));
+  const deleteMurmur = async (murmurId: number) => {
+    if (!currentUser) {
+      throw new Error("User must be authenticated to delete murmurs");
+    }
+    try {
+      await murmursAPI.delete(murmurId);
+      setMurmurs((prev) => prev.filter((m) => m.id !== murmurId));
+    } catch (error) {
+      console.error("Failed to delete murmur:", error);
+      throw error;
+    }
   };
 
-  const toggleLike = (murmurId: number) => {
-    if (!currentUser) return;
-
-    setMurmurs((prev) =>
-      prev.map((murmur) => {
-        if (murmur.id === murmurId) {
-          const isLiked = murmur.likedByUserIds.includes(currentUser.id);
-          return {
-            ...murmur,
-            likedByUserIds: isLiked
-              ? murmur.likedByUserIds.filter((id) => id !== currentUser.id)
-              : [...murmur.likedByUserIds, currentUser.id],
-          };
-        }
-        return murmur;
-      })
-    );
+  const toggleLike = async (murmurId: number) => {
+    if (!currentUser) {
+      throw new Error("User must be authenticated to like murmurs");
+    }
+    try {
+      await murmursAPI.toggleLike(murmurId);
+      // Refresh murmurs to get updated like status
+      await refreshMurmurs();
+    } catch (error) {
+      console.error("Failed to toggle like:", error);
+      throw error;
+    }
   };
 
-  const followUser = (userId: number) => {
-    if (!currentUser || userId === currentUser.id) return;
-
-    setUsers((prev) =>
-      prev.map((user) => {
-        if (user.id === currentUser.id) {
-          return {
-            ...user,
-            followingIds: [...user.followingIds, userId],
-          };
-        }
-        if (user.id === userId) {
-          return {
-            ...user,
-            followerIds: [...user.followerIds, currentUser.id],
-          };
-        }
-        return user;
-      })
-    );
-
-    setCurrentUser((prev) =>
-      prev
-        ? {
-            ...prev,
-            followingIds: [...prev.followingIds, userId],
-          }
-        : null
-    );
+  const followUser = async (userId: number) => {
+    if (!currentUser) {
+      throw new Error("User must be authenticated to follow users");
+    }
+    try {
+      await usersAPI.follow(userId);
+      await Promise.all([refreshUsers(), refreshMurmurs()]);
+    } catch (error) {
+      console.error("Failed to follow user:", error);
+      throw error;
+    }
   };
 
-  const unfollowUser = (userId: number) => {
-    if (!currentUser) return;
-
-    setUsers((prev) =>
-      prev.map((user) => {
-        if (user.id === currentUser.id) {
-          return {
-            ...user,
-            followingIds: user.followingIds.filter((id) => id !== userId),
-          };
-        }
-        if (user.id === userId) {
-          return {
-            ...user,
-            followerIds: user.followerIds.filter((id) => id !== currentUser.id),
-          };
-        }
-        return user;
-      })
-    );
-
-    setCurrentUser((prev) =>
-      prev
-        ? {
-            ...prev,
-            followingIds: prev.followingIds.filter((id) => id !== userId),
-          }
-        : null
-    );
+  const unfollowUser = async (userId: number) => {
+    if (!currentUser) {
+      throw new Error("User must be authenticated to unfollow users");
+    }
+    try {
+      await usersAPI.unfollow(userId);
+      await Promise.all([refreshUsers(), refreshMurmurs()]);
+    } catch (error) {
+      console.error("Failed to unfollow user:", error);
+      throw error;
+    }
   };
 
   return (
     <AppContext.Provider
       value={{
-        currentUser,
         users,
         murmurs,
-        setCurrentUser,
+        loading,
         addMurmur,
         deleteMurmur,
         toggleLike,
         followUser,
         unfollowUser,
+        refreshMurmurs,
+        refreshUsers,
       }}
     >
       {children}

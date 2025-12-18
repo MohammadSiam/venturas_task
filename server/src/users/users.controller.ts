@@ -1,34 +1,71 @@
-import { Controller, Get, Post, Param, UseGuards, Request, ParseIntPipe, Body } from '@nestjs/common';
-import { UsersService } from './users.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  ParseIntPipe,
+  UseGuards,
+  Request,
+} from "@nestjs/common";
+import { UsersService } from "./users.service";
+import { CreateUserDto } from "./dto/create-user.dto";
+import { UserResponseDto } from "./dto/user-response.dto";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 
-@Controller('users')
+@Controller("api/users")
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
-  @UseGuards(JwtAuthGuard)
-  @Get('me')
-  async getMe(@Request() req) {
-    return this.usersService.getProfile(req.user.userId, req.user.userId);
+  @Post()
+  async create(@Body() createUserDto: CreateUserDto): Promise<UserResponseDto> {
+    return this.usersService.create(createUserDto);
+  }
+
+  @Get()
+  async findAll(): Promise<UserResponseDto[]> {
+    return this.usersService.findAll();
+  }
+
+  @Get(":id")
+  async findOne(
+    @Param("id", ParseIntPipe) id: number
+  ): Promise<UserResponseDto> {
+    return this.usersService.findOne(id);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get(':id')
-  async getUser(@Request() req, @Param('id', ParseIntPipe) id: number) {
-    return this.usersService.getProfile(req.user.userId, id);
+  @Post(":id/follow")
+  async follow(
+    @Param("id", ParseIntPipe) id: number,
+    @Request() req: any
+  ): Promise<{ message: string }> {
+    await this.usersService.follow(req.user.id, id);
+    return { message: "Successfully followed user" };
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post(':id/follow')
-  async follow(@Request() req, @Param('id', ParseIntPipe) id: number) {
-    await this.usersService.follow(req.user.userId, id);
-    return { success: true };
+  @Delete(":id/follow")
+  async unfollow(
+    @Param("id", ParseIntPipe) id: number,
+    @Request() req: any
+  ): Promise<{ message: string }> {
+    await this.usersService.unfollow(req.user.id, id);
+    return { message: "Successfully unfollowed user" };
   }
-  
-  @UseGuards(JwtAuthGuard)
-  @Post(':id/unfollow')
-  async unfollow(@Request() req, @Param('id', ParseIntPipe) id: number) {
-    await this.usersService.unfollow(req.user.userId, id);
-    return { success: true };
+
+  @Get(":id/following")
+  async getFollowing(
+    @Param("id", ParseIntPipe) id: number
+  ): Promise<UserResponseDto[]> {
+    return this.usersService.getFollowing(id);
+  }
+
+  @Get(":id/followers")
+  async getFollowers(
+    @Param("id", ParseIntPipe) id: number
+  ): Promise<UserResponseDto[]> {
+    return this.usersService.getFollowers(id);
   }
 }

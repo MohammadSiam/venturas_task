@@ -2,15 +2,16 @@ import { createContext } from "react";
 import type { User, Murmur } from "../types";
 
 export interface AppContextType {
-  currentUser: User | null;
   users: User[];
   murmurs: Murmur[];
-  setCurrentUser: (user: User | null) => void;
-  addMurmur: (text: string) => void;
-  deleteMurmur: (murmurId: number) => void;
-  toggleLike: (murmurId: number) => void;
-  followUser: (userId: number) => void;
-  unfollowUser: (userId: number) => void;
+  loading: boolean;
+  addMurmur: (content: string) => Promise<void>;
+  deleteMurmur: (murmurId: number) => Promise<void>;
+  toggleLike: (murmurId: number) => Promise<void>;
+  followUser: (userId: number) => Promise<void>;
+  unfollowUser: (userId: number) => Promise<void>;
+  refreshMurmurs: () => Promise<void>;
+  refreshUsers: () => Promise<void>;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);

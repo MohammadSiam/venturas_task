@@ -1,15 +1,25 @@
 import React, { useState } from "react";
 import { useApp } from "../hooks/useApp";
+import { useAuth } from "../hooks/useAuth";
 
 const MurmurForm: React.FC = () => {
-  const [text, setText] = useState("");
-  const { addMurmur, currentUser } = useApp();
+  const [content, setContent] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { addMurmur } = useApp();
+  const { user: currentUser } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (text.trim() && currentUser) {
-      addMurmur(text.trim());
-      setText("");
+    if (content.trim() && currentUser && !isSubmitting) {
+      setIsSubmitting(true);
+      try {
+        await addMurmur(content.trim());
+        setContent("");
+      } catch (error) {
+        console.error("Failed to create murmur:", error);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -26,21 +36,24 @@ const MurmurForm: React.FC = () => {
           </div>
           <div className="flex-1">
             <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
               placeholder="What's happening?"
               className="w-full p-3 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               rows={3}
               maxLength={280}
+              disabled={isSubmitting}
             />
             <div className="flex items-center justify-between mt-3">
-              <span className="text-sm text-gray-500">{text.length}/280</span>
+              <span className="text-sm text-gray-500">
+                {content.length}/280
+              </span>
               <button
                 type="submit"
-                disabled={!text.trim()}
+                disabled={!content.trim() || isSubmitting}
                 className="px-6 py-2 bg-blue-500 text-white rounded-full font-medium hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Murmur
+                {isSubmitting ? "Posting..." : "Murmur"}
               </button>
             </div>
           </div>

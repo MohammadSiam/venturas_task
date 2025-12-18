@@ -1,19 +1,14 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useApp } from "../hooks/useApp";
+import { useAuth } from "../hooks/useAuth";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { currentUser, users, setCurrentUser } = useApp();
+  const { user: currentUser, logout } = useAuth();
   const location = useLocation();
-
-  const handleUserSwitch = (userId: number) => {
-    const user = users.find((u) => u.id === userId);
-    setCurrentUser(user || null);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,21 +45,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
 
-            {/* User Switcher for Demo */}
-            <div className="flex items-center space-x-3">
-              <span className="text-sm text-gray-600">Switch User:</span>
-              <select
-                value={currentUser?.id || ""}
-                onChange={(e) => handleUserSwitch(Number(e.target.value))}
-                className="text-sm border rounded px-2 py-1"
-              >
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* User Info and Logout */}
+            {currentUser && (
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-gray-600">
+                  Welcome, {currentUser.name}
+                </span>
+                <button
+                  onClick={logout}
+                  className="text-sm text-red-600 hover:text-red-800 px-3 py-1 rounded border border-red-300 hover:bg-red-50"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </nav>
