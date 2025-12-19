@@ -20,7 +20,7 @@ export interface MurmurResponse {
 export const murmurService = {
   async fetchMurmurs(page = 1, limit = 10): Promise<MurmurResponse> {
     try {
-      return await murmursAPI.getAll(page, limit);
+      return await murmursAPI.getTimeline(page, limit);
     } catch (error) {
       console.error("Failed to fetch murmurs:", error);
       throw error;
