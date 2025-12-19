@@ -26,6 +26,20 @@ const Timeline: React.FC = () => {
     }
   }, [murmurs.length, lastUpdated]);
 
+  // Listen for user follow changes and refresh timeline
+  useEffect(() => {
+    const handleUserFollowChanged = () => {
+      refreshMurmurs();
+      setLastUpdated(new Date());
+    };
+
+    window.addEventListener("userFollowChanged", handleUserFollowChanged);
+
+    return () => {
+      window.removeEventListener("userFollowChanged", handleUserFollowChanged);
+    };
+  }, [refreshMurmurs]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {

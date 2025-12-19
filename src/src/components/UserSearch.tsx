@@ -56,6 +56,8 @@ const UserSearch: React.FC = () => {
       } else {
         await followUser(user.id);
       }
+      // Dispatch custom event to notify timeline to refresh
+      window.dispatchEvent(new CustomEvent("userFollowChanged"));
     } catch (error) {
       console.error("Follow action failed:", error);
     }
