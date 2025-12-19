@@ -1,3 +1,3 @@
 export const jwtConstants = {
-  secret: 'secretKey', 
+  secret: "your-secret-key-change-this-in-production",
 };

@@ -1,9 +1,16 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
-import { Murmur } from '../entities/murmur.entity';
-import { Like } from '../entities/like.entity';
-import { Follow } from '../entities/follow.entity';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Murmur } from "../entities/murmur.entity";
+import { Like } from "../entities/like.entity";
+import { Follow } from "../entities/follow.entity";
+import { User } from "../entities/user.entity";
+import { CreateMurmurDto } from "./dto/create-murmur.dto";
+import { MurmurResponseDto } from "./dto/murmur-response.dto";
 
 @Injectable()
 export class MurmursService {
@@ -13,87 +20,217 @@ export class MurmursService {
     @InjectRepository(Like)
     private likesRepository: Repository<Like>,
     @InjectRepository(Follow)
-    private followsRepository: Repository<Follow>,
+    private followsRepository: Repository<Follow>
   ) {}
 
-  async create(userId: number, content: string): Promise<Murmur> {
-    const murmur = this.murmursRepository.create({ userId, content });
-    return this.murmursRepository.save(murmur);
+  async create(
+    userId: number,
+    createMurmurDto: CreateMurmurDto
+  ): Promise<MurmurResponseDto> {
+    const murmur = this.murmursRepository.create({
+      userId,
+      content: createMurmurDto.content,
+    });
+
+    const savedMurmur = await this.murmursRepository.save(murmur);
+    return this.toMurmurResponse(savedMurmur, userId);
   }
 
-  async findAll(): Promise<Murmur[]> {
-    return this.murmursRepository.find({ relations: ['user', 'likes'] });
+  async findAll(
+    currentUserId?: number,
+    page = 1,
+    limit = 10
+  ): Promise<{
+    murmurs: MurmurResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const skip = (page - 1) * limit;
+
+    const [murmurs, total] = await this.murmursRepository.findAndCount({
+      relations: ["user"],
+      order: { createdAt: "DESC" },
+      skip,
+      take: limit,
+    });
+
+    const murmurResponses = await Promise.all(
+      murmurs.map((murmur) => this.toMurmurResponse(murmur, currentUserId))
+    );
+
+    return {
+      murmurs: murmurResponses,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  async findTimeline(userId: number, page: number = 1): Promise<any> {
-      // Get IDs of users followed by current user
-      const following = await this.followsRepository.find({ where: { followerId: userId } });
-      const followingIds = following.map(f => f.followingId);
-      
-      // Add own ID to include own murmurs
-      followingIds.push(userId);
+  async findTimeline(
+    userId: number,
+    page = 1,
+    limit = 10
+  ): Promise<{
+    murmurs: MurmurResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const skip = (page - 1) * limit;
 
-      const take = 10;
-      const skip = (page - 1) * take;
+    // Get users that the current user follows
+    const follows = await this.followsRepository.find({
+      where: { followerId: userId },
+      select: ["followingId"],
+    });
 
-      const [result, total] = await this.murmursRepository.findAndCount({
-          where: { userId: In(followingIds) },
-          order: { createdAt: 'DESC' },
-          take,
-          skip,
-          relations: ['user', 'likes']
-      });
+    const followingIds = follows.map((follow) => follow.followingId);
+    followingIds.push(userId); // Include own murmurs
 
-      // Map likes to count and check if liked by current user
-      const murmurs = result.map(m => {
-          const likeCount = m.likes.length;
-          const isLiked = m.likes.some(l => l.userId === userId);
-          return {
-              ...m,
-              likeCount,
-              isLiked
-          };
-      });
+    const [murmurs, total] = await this.murmursRepository
+      .createQueryBuilder("murmur")
+      .leftJoinAndSelect("murmur.user", "user")
+      .where("murmur.userId IN (:...followingIds)", { followingIds })
+      .orderBy("murmur.createdAt", "DESC")
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
 
-      return {
-          data: murmurs,
-          total,
-          page,
-          lastPage: Math.ceil(total / take)
-      };
+    const murmurResponses = await Promise.all(
+      murmurs.map((murmur) => this.toMurmurResponse(murmur, userId))
+    );
+
+    return {
+      murmurs: murmurResponses,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
-  async findByUserId(currentUserId: number, targetUserId: number): Promise<Murmur[]> {
-      const murmurs = await this.murmursRepository.find({
-          where: { userId: targetUserId },
-          order: { createdAt: 'DESC' },
-          relations: ['user', 'likes']
-      });
-      
-      return murmurs.map(m => {
-           const likeCount = m.likes.length;
-           const isLiked = m.likes.some(l => l.userId === currentUserId);
-           return {
-               ...m,
-               likeCount,
-               isLiked
-           } as any;
-      });
+  async findOne(
+    id: number,
+    currentUserId?: number
+  ): Promise<MurmurResponseDto> {
+    const murmur = await this.murmursRepository.findOne({
+      where: { id },
+      relations: ["user"],
+    });
+
+    if (!murmur) {
+      throw new NotFoundException("Murmur not found");
+    }
+
+    return this.toMurmurResponse(murmur, currentUserId);
   }
 
-  async remove(userId: number, id: number): Promise<void> {
+  async findByUser(
+    userId: number,
+    currentUserId?: number,
+    page = 1,
+    limit = 10
+  ): Promise<{
+    murmurs: MurmurResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const skip = (page - 1) * limit;
+
+    const [murmurs, total] = await this.murmursRepository.findAndCount({
+      where: { userId },
+      relations: ["user"],
+      order: { createdAt: "DESC" },
+      skip,
+      take: limit,
+    });
+
+    const murmurResponses = await Promise.all(
+      murmurs.map((murmur) => this.toMurmurResponse(murmur, currentUserId))
+    );
+
+    return {
+      murmurs: murmurResponses,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async delete(id: number, userId: number): Promise<void> {
     const murmur = await this.murmursRepository.findOne({ where: { id } });
-    if (!murmur) throw new NotFoundException('Murmur not found');
-    if (murmur.userId !== userId) throw new ForbiddenException('You can only delete your own murmurs');
-    
+
+    if (!murmur) {
+      throw new NotFoundException("Murmur not found");
+    }
+
+    if (murmur.userId !== userId) {
+      throw new ForbiddenException("You can only delete your own murmurs");
+    }
+
     await this.murmursRepository.remove(murmur);
   }
 
-  async like(userId: number, murmurId: number): Promise<void> {
-      const existing = await this.likesRepository.findOne({ where: { userId, murmurId } });
-      if (existing) return;
-      
-      const like = this.likesRepository.create({ userId, murmurId });
+  async like(murmurId: number, userId: number): Promise<void> {
+    const murmur = await this.murmursRepository.findOne({
+      where: { id: murmurId },
+    });
+    if (!murmur) {
+      throw new NotFoundException("Murmur not found");
+    }
+
+    const existingLike = await this.likesRepository.findOne({
+      where: { murmurId, userId },
+    });
+
+    if (existingLike) {
+      // Unlike
+      await this.likesRepository.remove(existingLike);
+    } else {
+      // Like
+      const like = this.likesRepository.create({ murmurId, userId });
       await this.likesRepository.save(like);
+    }
+  }
+
+  private async toMurmurResponse(
+    murmur: Murmur,
+    currentUserId?: number
+  ): Promise<MurmurResponseDto> {
+    const likesCount = await this.likesRepository.count({
+      where: { murmurId: murmur.id },
+    });
+
+    let isLiked = false;
+    if (currentUserId) {
+      const like = await this.likesRepository.findOne({
+        where: { murmurId: murmur.id, userId: currentUserId },
+      });
+      isLiked = !!like;
+    }
+
+    return {
+      id: murmur.id,
+      content: murmur.content,
+      createdAt: murmur.createdAt,
+      userId: murmur.userId,
+      user: murmur.user
+        ? {
+            id: murmur.user.id,
+            username: murmur.user.username,
+            name: murmur.user.name,
+            createdAt: murmur.user.createdAt,
+          }
+        : undefined,
+      likesCount,
+      isLiked,
+    };
   }
 }

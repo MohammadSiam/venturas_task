@@ -1,73 +1,102 @@
-# React + TypeScript + Vite
+# Murmur - Twitter-like Social Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React-based social media application similar to Twitter, built with TypeScript and Tailwind CSS.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### ✅ Implemented Features
 
-## React Compiler
+#### Timeline
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Murmur Feed**: Displays murmurs from followed users and own murmurs
+- **Like System**: Users can like/unlike murmurs with heart button
+- **Pagination**: Shows 10 murmurs per page with navigation controls
+- **Post Creation**: Users can create new murmurs (280 character limit)
 
-## Expanding the ESLint configuration
+#### Murmur Detail
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Individual Murmur View**: Detailed view of a single murmur
+- **Murmur Stats**: Shows creation date, like count, and author info
+- **Interactive Actions**: Like and delete functionality
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+#### User Profiles
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- **Own Profile**: View personal murmurs with delete functionality
+- **Other User Profiles**: View other users' murmurs and follow/unfollow
+- **User Stats**: Display following count, followers count, and murmur count
+- **Follow System**: Follow/unfollow other users
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+#### Navigation
+
+- **Responsive Layout**: Clean, Twitter-like interface
+- **User Switcher**: Demo feature to switch between different users
+- **Routing**: Seamless navigation between timeline, profiles, and murmur details
+
+## Technical Stack
+
+- **React 19** with TypeScript
+- **React Router** for navigation
+- **Tailwind CSS** for styling
+- **Vite** for development and building
+- **Context API** for state management
+
+## Getting Started
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Start the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+3. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── Layout.tsx      # Main layout with navigation
+│   ├── MurmurCard.tsx  # Individual murmur display
+│   ├── MurmurForm.tsx  # New murmur creation form
+│   └── Pagination.tsx  # Pagination controls
+├── pages/              # Main page components
+│   ├── Timeline.tsx    # Home timeline feed
+│   ├── MurmurDetail.tsx # Individual murmur page
+│   └── UserProfile.tsx # User profile pages
+├── context/            # React Context for state management
+│   └── AppContext.tsx  # Main application context
+├── hooks/              # Custom React hooks
+│   └── useApp.ts       # Hook to access app context
+├── data/               # Mock data
+│   └── mockData.ts     # Initial users and murmurs
+├── types/              # TypeScript type definitions
+│   └── index.ts        # User and Murmur interfaces
+└── App.tsx             # Main application component
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Demo Users
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The application comes with 3 demo users:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **John Doe** (@johndoe)
+- **Jane Smith** (@janesmith)
+- **Bob Johnson** (@bobjohnson)
+
+Use the user switcher in the navigation to test different user perspectives.
+
+## Future Enhancements
+
+- User authentication system
+- Real-time updates
+- Image/media support in murmurs
+- Search functionality
+- Notifications system
+- Direct messaging
+- Hashtag support
+- User mentions (@username)
