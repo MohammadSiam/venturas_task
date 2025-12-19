@@ -1,13 +1,18 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
+import { authUtils } from "../utils/auth";
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user: currentUser, logout } = useAuth();
+  const currentUser = authUtils.getUser();
+
+  const handleLogout = () => {
+    authUtils.clearAuth();
+    window.location.reload(); // Simple way to reset app state
+  };
   const location = useLocation();
 
   return (
@@ -52,7 +57,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   Welcome, {currentUser.name}
                 </span>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="text-sm text-red-600 hover:text-red-800 px-3 py-1 rounded border border-red-300 hover:bg-red-50"
                 >
                   Logout

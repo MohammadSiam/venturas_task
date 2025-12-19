@@ -9,7 +9,6 @@ import {
   ParseIntPipe,
   UseGuards,
   Request,
-  Optional,
 } from "@nestjs/common";
 import { MurmursService } from "./murmurs.service";
 import { CreateMurmurDto } from "./dto/create-murmur.dto";
@@ -27,7 +26,7 @@ export class MurmursController {
     @Query("page") page = 1,
     @Query("limit") limit = 10,
     @Request() req: any
-  ): Promise<MurmurResponseDto[]> {
+  ) {
     const currentUserId = req.user?.id;
     return this.murmursService.findAll(currentUserId, +page, +limit);
   }
@@ -38,7 +37,7 @@ export class MurmursController {
     @Query("page") page = 1,
     @Query("limit") limit = 10,
     @Request() req: any
-  ): Promise<MurmurResponseDto[]> {
+  ) {
     return this.murmursService.findTimeline(req.user.id, +page, +limit);
   }
 
@@ -59,7 +58,7 @@ export class MurmursController {
     @Query("page") page = 1,
     @Query("limit") limit = 10,
     @Request() req: any
-  ): Promise<MurmurResponseDto[]> {
+  ) {
     const currentUserId = req.user?.id;
     return this.murmursService.findByUser(userId, currentUserId, +page, +limit);
   }

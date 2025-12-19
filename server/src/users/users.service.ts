@@ -7,6 +7,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { User } from "../entities/user.entity";
 import { Follow } from "../entities/follow.entity";
+import { Murmur } from "../entities/murmur.entity";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import * as bcrypt from "bcrypt";
@@ -17,7 +18,9 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     @InjectRepository(Follow)
-    private followsRepository: Repository<Follow>
+    private followsRepository: Repository<Follow>,
+    @InjectRepository(Murmur)
+    private murmursRepository: Repository<Murmur>
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<UserResponseDto> {
@@ -131,6 +134,47 @@ export class UsersService {
     return !!follow;
   }
 
+  async searchUsers(query: string): Promise<UserResponseDto[]> {
+    const users = await this.usersRepository
+      .createQueryBuilder("user")
+      .where("user.username LIKE :query OR user.name LIKE :query", {
+        query: `%${query}%`,
+      })
+      .limit(10)
+      .getMany();
+
+    return Promise.all(
+      users.map((user) => this.toUserResponseWithCounts(user))
+    );
+  }
+
+  async searchUsersWithFollowStatus(
+    query: string,
+    currentUserId: number
+  ): Promise<UserResponseDto[]> {
+    const users = await this.usersRepository
+      .createQueryBuilder("user")
+      .where("user.username LIKE :query OR user.name LIKE :query", {
+        query: `%${query}%`,
+      })
+      .andWhere("user.id != :currentUserId", { currentUserId })
+      .limit(10)
+      .getMany();
+
+    const usersWithFollowStatus = await Promise.all(
+      users.map(async (user) => {
+        const userResponse = await this.toUserResponseWithCounts(user);
+        const isFollowing = await this.isFollowing(currentUserId, user.id);
+        return {
+          ...userResponse,
+          isFollowing,
+        };
+      })
+    );
+
+    return usersWithFollowStatus;
+  }
+
   private toUserResponse(user: User): UserResponseDto {
     return {
       id: user.id,
@@ -144,11 +188,7 @@ export class UsersService {
     const [followingCount, followersCount, murmursCount] = await Promise.all([
       this.followsRepository.count({ where: { followerId: user.id } }),
       this.followsRepository.count({ where: { followingId: user.id } }),
-      this.usersRepository
-        .createQueryBuilder("user")
-        .leftJoin("user.murmurs", "murmur")
-        .where("user.id = :id", { id: user.id })
-        .getCount(),
+      this.murmursRepository.count({ where: { userId: user.id } }),
     ]);
 
     return {

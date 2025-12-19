@@ -1,16 +1,14 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import { AppProvider } from "./context/AppContext";
-import { useAuth } from "./hooks/useAuth";
+import { useLocalAuth } from "./hooks/useLocalAuth";
 import Layout from "./components/Layout";
-import LoginForm from "./components/LoginForm";
+import AuthWrapper from "./components/AuthWrapper";
 import Timeline from "./pages/Timeline";
 import MurmurDetail from "./pages/MurmurDetail";
 import UserProfile from "./pages/UserProfile";
 import "./App.css";
 
-function AppContent() {
-  const { user, isLoading } = useAuth();
+const App: React.FC = () => {
+  const { user, isLoading } = useLocalAuth();
 
   if (isLoading) {
     return (
@@ -21,7 +19,7 @@ function AppContent() {
   }
 
   if (!user) {
-    return <LoginForm />;
+    return <AuthWrapper />;
   }
 
   return (
@@ -35,16 +33,6 @@ function AppContent() {
       </Layout>
     </Router>
   );
-}
-
-function App() {
-  return (
-    <AuthProvider>
-      <AppProvider>
-        <AppContent />
-      </AppProvider>
-    </AuthProvider>
-  );
-}
+};
 
 export default App;

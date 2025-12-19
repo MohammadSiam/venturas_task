@@ -6,6 +6,7 @@ export interface User {
   followingCount?: number;
   followersCount?: number;
   murmursCount?: number;
+  isFollowing?: boolean;
 }
 
 export interface Murmur {
@@ -16,4 +17,11 @@ export interface Murmur {
   user?: User;
   likesCount: number;
   isLiked?: boolean;
+}
+
+export interface PaginationData {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }

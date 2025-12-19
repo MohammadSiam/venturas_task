@@ -43,6 +43,15 @@ export const authAPI = {
 
 // Users API
 export const usersAPI = {
+  create: async (userData: {
+    username: string;
+    name: string;
+    password: string;
+  }) => {
+    const response = await api.post("/users", userData);
+    return response.data;
+  },
+
   getAll: async (): Promise<User[]> => {
     const response = await api.get("/users");
     return response.data;
@@ -72,16 +81,23 @@ export const usersAPI = {
     const response = await api.get(`/users/${id}/followers`);
     return response.data;
   },
+
+  search: async (query: string): Promise<User[]> => {
+    const response = await api.get(
+      `/users/search/${encodeURIComponent(query)}/with-follow-status`
+    );
+    return response.data;
+  },
 };
 
 // Murmurs API
 export const murmursAPI = {
-  getAll: async (page = 1, limit = 10): Promise<Murmur[]> => {
+  getAll: async (page = 1, limit = 10) => {
     const response = await api.get(`/murmurs?page=${page}&limit=${limit}`);
     return response.data;
   },
 
-  getTimeline: async (page = 1, limit = 10): Promise<Murmur[]> => {
+  getTimeline: async (page = 1, limit = 10) => {
     const response = await api.get(
       `/murmurs/timeline?page=${page}&limit=${limit}`
     );
@@ -93,11 +109,7 @@ export const murmursAPI = {
     return response.data;
   },
 
-  getByUser: async (
-    userId: number,
-    page = 1,
-    limit = 10
-  ): Promise<Murmur[]> => {
+  getByUser: async (userId: number, page = 1, limit = 10) => {
     const response = await api.get(
       `/murmurs/user/${userId}?page=${page}&limit=${limit}`
     );

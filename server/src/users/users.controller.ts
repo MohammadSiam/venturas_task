@@ -68,4 +68,18 @@ export class UsersController {
   ): Promise<UserResponseDto[]> {
     return this.usersService.getFollowers(id);
   }
+
+  @Get("search/:query")
+  async searchUsers(@Param("query") query: string): Promise<UserResponseDto[]> {
+    return this.usersService.searchUsers(query);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get("search/:query/with-follow-status")
+  async searchUsersWithFollowStatus(
+    @Param("query") query: string,
+    @Request() req: any
+  ): Promise<UserResponseDto[]> {
+    return this.usersService.searchUsersWithFollowStatus(query, req.user.id);
+  }
 }

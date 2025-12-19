@@ -1,77 +1,41 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useParams, Navigate } from "react-router-dom";
-import { useApp } from "../hooks/useApp";
-import { useAuth } from "../hooks/useAuth";
-import { usersAPI, murmursAPI } from "../services/api";
+import { useUserProfile } from "../hooks/useUserProfile";
+import { authUtils } from "../utils/auth";
 import MurmurCard from "../components/MurmurCard";
 import Pagination from "../components/Pagination";
-import type { User, Murmur } from "../types";
 
 const UserProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { followUser, unfollowUser } = useApp();
-  const { user: currentUser } = useAuth();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [user, setUser] = useState<User | null>(null);
-  const [userMurmurs, setUserMurmurs] = useState<Murmur[]>([]);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const murmursPerPage = 10;
+  const currentUser = authUtils.getUser();
+  const {
+    user,
+    userMurmurs,
+    pagination,
+    loading,
+    fetchUserData,
+    followUser: handleFollowUser,
+    unfollowUser: handleUnfollowUser,
+    toggleLike,
+    deleteMurmur,
+  } = useUserProfile(Number(id));
 
   const isOwnProfile = currentUser?.id === Number(id);
+  const isFollowing = user?.isFollowing || false;
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!id) return;
-
-      try {
-        setLoading(true);
-        const [userData, murmursData] = await Promise.all([
-          usersAPI.getById(Number(id)),
-          murmursAPI.getByUser(Number(id)),
-        ]);
-
-        setUser(userData);
-        setUserMurmurs(murmursData);
-
-        // Check if current user is following this user
-        if (currentUser && currentUser.id !== Number(id)) {
-          // This would need to be implemented in the API
-          // For now, we'll assume not following
-          setIsFollowing(false);
-        }
-      } catch (error) {
-        console.error("Failed to fetch user data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [id, currentUser]);
-
-  const totalPages = Math.ceil(userMurmurs.length / murmursPerPage);
-  const startIndex = (currentPage - 1) * murmursPerPage;
-  const paginatedMurmurs = userMurmurs.slice(
-    startIndex,
-    startIndex + murmursPerPage
-  );
+  const handlePageChange = async (page: number) => {
+    await fetchUserData(page, pagination.limit);
+  };
 
   const handleFollowToggle = async () => {
     if (!currentUser || !user) return;
 
     try {
       if (isFollowing) {
-        await unfollowUser(user.id);
-        setIsFollowing(false);
+        await handleUnfollowUser();
       } else {
-        await followUser(user.id);
-        setIsFollowing(true);
+        await handleFollowUser();
       }
-
-      // Refresh user data to get updated counts
-      const userData = await usersAPI.getById(user.id);
-      setUser(userData);
     } catch (error) {
       console.error("Failed to toggle follow:", error);
     }
@@ -132,7 +96,7 @@ const UserProfile: React.FC = () => {
           </div>
           <div>
             <span className="font-semibold text-gray-900">
-              {user.murmursCount || userMurmurs.length}
+              {user.murmursCount || pagination.total}
             </span>
             <span className="text-gray-600 ml-1">Murmurs</span>
           </div>
@@ -144,7 +108,7 @@ const UserProfile: React.FC = () => {
           {isOwnProfile ? "Your Murmurs" : `${user.name}'s Murmurs`}
         </h2>
 
-        {paginatedMurmurs.length === 0 ? (
+        {userMurmurs.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500">
               {isOwnProfile
@@ -155,19 +119,21 @@ const UserProfile: React.FC = () => {
         ) : (
           <>
             <div className="space-y-4">
-              {paginatedMurmurs.map((murmur) => (
+              {userMurmurs.map((murmur) => (
                 <MurmurCard
                   key={murmur.id}
                   murmur={murmur}
                   showActions={true}
+                  onToggleLike={toggleLike}
+                  onDeleteMurmur={deleteMurmur}
                 />
               ))}
             </div>
 
             <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
             />
           </>
         )}
