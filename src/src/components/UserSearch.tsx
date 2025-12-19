@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { authUtils } from "../utils/auth";
 import { useUserSearch } from "../hooks/useUserSearch";
 import type { User } from "../types";
@@ -6,7 +6,10 @@ import type { User } from "../types";
 const UserSearch: React.FC = () => {
   const [query, setQuery] = useState("");
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const lastQueryRef = useRef("");
+  const [lastQuery, setLastQuery] = useState("");
+  const [noResultsQueries, setNoResultsQueries] = useState<Set<string>>(
+    new Set()
+  );
   const currentUser = authUtils.getUser();
 
   const {
@@ -22,20 +25,34 @@ const UserSearch: React.FC = () => {
     const trimmed = query.trim();
 
     // Skip API call if same query with existing results
-    if (trimmed === lastQueryRef.current && searchResults.length > 0) {
+    if (trimmed === lastQuery && searchResults.length > 0) {
+      return;
+    }
+
+    // Skip API call if we know this query returns no results
+    if (noResultsQueries.has(trimmed.toLowerCase())) {
       return;
     }
 
     const search = async () => {
       if (trimmed.length < 2) {
         clearResults();
-        lastQueryRef.current = "";
+        setLastQuery("");
+        // Clear no-results cache when query is too short
+        setNoResultsQueries(new Set());
         return;
       }
 
       try {
-        await searchUsers(trimmed, currentUser?.id);
-        lastQueryRef.current = trimmed;
+        const results = await searchUsers(trimmed, currentUser?.id);
+        setLastQuery(trimmed);
+
+        // Track queries that return no results
+        if (results.length === 0) {
+          setNoResultsQueries(
+            (prev) => new Set([...prev, trimmed.toLowerCase()])
+          );
+        }
       } catch (error) {
         console.error("Search failed:", error);
       }
@@ -43,11 +60,24 @@ const UserSearch: React.FC = () => {
 
     const timer = setTimeout(search, 300);
     return () => clearTimeout(timer);
-  }, [query, searchUsers, clearResults, currentUser?.id, searchResults.length]);
+  }, [
+    query,
+    searchUsers,
+    clearResults,
+    currentUser?.id,
+    searchResults.length,
+    lastQuery,
+    noResultsQueries,
+  ]);
 
-  // Compute whether to show results
+  // Compute whether to show results dropdown
+  const trimmedQuery = query.trim();
   const shouldShowResults =
-    query.trim().length >= 2 && searchResults.length > 0 && isInputFocused;
+    isInputFocused &&
+    trimmedQuery.length >= 2 &&
+    (searchResults.length > 0 ||
+      noResultsQueries.has(trimmedQuery.toLowerCase()) ||
+      (!loading && lastQuery === trimmedQuery));
 
   const handleFollowToggle = async (user: User) => {
     try {
@@ -126,10 +156,10 @@ const UserSearch: React.FC = () => {
                   </button>
                 </div>
               ))
-            : query.trim().length >= 2 &&
+            : trimmedQuery.length >= 2 &&
               !loading && (
                 <div className="p-4 text-center text-gray-500">
-                  No users found for "{query}"
+                  No users found for "{trimmedQuery}"
                 </div>
               )}
         </div>
