@@ -77,12 +77,39 @@ export const useTimeline = () => {
   };
 
   const toggleLike = async (murmurId: number) => {
+    // Optimistic update - update UI immediately
+    setMurmurs((prev) =>
+      prev.map((murmur) =>
+        murmur.id === murmurId
+          ? {
+              ...murmur,
+              isLiked: !murmur.isLiked,
+              likesCount: murmur.isLiked
+                ? murmur.likesCount - 1
+                : murmur.likesCount + 1,
+            }
+          : murmur
+      )
+    );
+
     try {
       setError(null);
       await murmurService.toggleLike(murmurId);
-      // Refresh current page to get updated like status
-      await fetchMurmurs(pagination.page, pagination.limit);
     } catch (err) {
+      // Revert optimistic update on error
+      setMurmurs((prev) =>
+        prev.map((murmur) =>
+          murmur.id === murmurId
+            ? {
+                ...murmur,
+                isLiked: !murmur.isLiked,
+                likesCount: murmur.isLiked
+                  ? murmur.likesCount + 1
+                  : murmur.likesCount - 1,
+              }
+            : murmur
+        )
+      );
       setError(err instanceof Error ? err.message : "Failed to toggle like");
       throw err;
     }
