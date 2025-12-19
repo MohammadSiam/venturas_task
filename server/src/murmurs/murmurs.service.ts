@@ -20,9 +20,7 @@ export class MurmursService {
     @InjectRepository(Like)
     private likesRepository: Repository<Like>,
     @InjectRepository(Follow)
-    private followsRepository: Repository<Follow>,
-    @InjectRepository(User)
-    private usersRepository: Repository<User>
+    private followsRepository: Repository<Follow>
   ) {}
 
   async create(

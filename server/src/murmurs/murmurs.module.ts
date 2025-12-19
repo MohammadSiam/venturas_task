@@ -8,7 +8,7 @@ import { Follow } from "../entities/follow.entity";
 import { User } from "../entities/user.entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Murmur, Like, Follow, User])],
+  imports: [TypeOrmModule.forFeature([Murmur, Like, Follow])],
   controllers: [MurmursController],
   providers: [MurmursService],
 })
