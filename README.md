@@ -1,119 +1,221 @@
-# Web Application Test
+# Murmur Application - Twitter-like Social Media Platform
 
-# Note
-Make sure you run this application with the following tech stack.
+A full-stack social media application built with React, NestJS, and MySQL that allows users to post murmurs (tweets), follow other users, and interact through likes.
 
-- NestJS
-- React
-- MySQL
+## 🚀 Implemented Features
 
-## Theme
+### ✅ Authentication System
 
-Please implement web application which is able to show murmur(=tweet) by user. (this application is similar to Twitter)
+- **User Registration & Login** - Complete authentication flow
+- **JWT Token Management** - Secure token-based authentication
+- **Protected Routes** - Route guards for authenticated users only
+- **Local Storage Auth** - Persistent login sessions
 
-## Specifications
+### ✅ Timeline Features
 
-- The user can follow other users.
-- By following, a list of murmurs posted by other users is displayed in the timeline.
-- The user can post murmur as many times as he wants.
-- Only the user who posted can delete his murmur.
-- The user can add LIKE to another person's murmur.
-- [optional] User authentication.
+- **Murmur Feed** - Display murmurs from followed users
+- **Pagination** - 10 murmurs per page with navigation controls
+- **Like System** - Optimistic updates for instant feedback
+- **Real-time Updates** - Auto-refresh timeline after follow actions
+- **Create Murmurs** - Post new murmurs with character validation
+- **Loading States** - Professional loading indicators
 
-### DB
+### ✅ Murmur Detail Page
 
-There are two sample tables in this application.
-Please consider and add columns to below tables.
-Further more I think you need more tables, so it's possible to add new tables depending on below specification.
+- **Individual Murmur View** - Dedicated page for each murmur
+- **Author Information** - User details and profile links
+- **Like Functionality** - Toggle likes with real-time count updates
+- **Responsive Design** - Mobile-friendly layout
 
-e.g.
+### ✅ User Profile System
 
-- murmurs
-- users
+- **Own Profile Management** - View and manage personal profile
+- **User Statistics** - Follower/following counts
+- **Personal Murmurs** - List of user's own murmurs
+- **Delete Functionality** - Remove own murmurs with confirmation
+- **Other User Profiles** - View other users' profiles and murmurs
 
-### Server
+### ✅ Social Features
 
-Please implement REST API. There are three sample endpoints below.
-I think you need more endpoints, so you add more endpoints as needed.
+- **Follow/Unfollow System** - Build social connections
+- **User Search** - Smart search with debouncing and caching
+- **No-Result Optimization** - Prevent redundant API calls
+- **Follow Status Updates** - Real-time follow button states
 
-e.g.
-* `[GET] /api/murmurs/`
-* `[POST] /api/me/murmurs/`
-* `[DELETE] /api/me/murmurs/:id/`
+### ✅ Performance Optimizations
 
-### Client
+- **Debounced Search** - 300ms delay to reduce API calls
+- **Smart Caching** - Cache search results and no-result queries
+- **Optimistic Updates** - Instant UI feedback for likes
+- **Route-Specific Loading** - Only load necessary data per route
+- **Request Cancellation** - Prevent race conditions
 
-Please implement below function using React.
-If you want to add new function after complete to implement below function, it's possible to add and we evaluate your original function.
+## 🛠 Tech Stack
 
-- Timeline
-  - List of Murmur information (e.g. text, LIKE count)
-  - LIKE button each murmur.
-  - Show 10 murmur per page. (need to implement pagination)
-- Murmur Detail
-  - Murmur Information (e.g. text, LIKE count)
-- Own User Detail 
-  - User information (e.g. name, followCount, followedCount)
-  - List of own murmurs
-  - Button for delete a murmur
-- Other User Detail
-  - User information (e.g. name, followCount, followedCount)
-  - List of the user's murmurs
+### Frontend
 
-### Point
+- **React 18** with TypeScript
+- **React Router** for navigation
+- **Tailwind CSS** for styling
+- **Vite** for build tooling
 
-- You can proceed with the implementation freely.
-- Of course, you can also search the Web or refer to the books you have.
-- The deadline is 5 days after the assignment is handed over. The date and time will be announced separately.
-- Please aim to implement all the features in client and backend. CSS is not evaluated, so the minimum design style is fine.
-- You can ask any questions about the content. If any question, please send email to (keita.ojima@venturas-bd.com) (salvana.ahmed@venturas-bd.com) , (uedayoriko@venturas-bd.com). 
-(sohana.shomi@venturas-bd.com). (rahat.redwanul@venturas-bd.com). Please note that I do not guarantee an immediate reply.
+### Backend
 
-## How to proceed with development
+- **NestJS** with TypeScript
+- **JWT Authentication**
+- **TypeORM** for database operations
+- **MySQL 8.x** database
 
-1. Download `webapp_test.zip` from email. 
-2. Create repository for your private GitHub account and push unzipped files to main branch.
-3. Give the administrator privileges of the repository to the following Github id.
-   - ojimac
-4. Create `develop` branch from main.
-5. Create the feature branch for your develop branch, submit a pull request as appropriate, and merge it into your develop branch.
-6. When development is complete, create a Pull request from develop branch to main branch.
-  In the pull request overview, include the following:
-   - Appeal Points
-   - Implemented Features
-   - Unimplemented Features
-   - Impressions
+### Development Tools
 
-## How to start the development environment
-### Programming Language
+- **Docker** for database containerization
+- **ESLint** for code quality
+- **Hot Reload** for development
 
-- Typescript
+## 📁 Project Structure
 
-### Directory structure
+```
+├── src/                    # Frontend (React)
+│   ├── components/         # Reusable UI components
+│   ├── pages/             # Route components
+│   ├── hooks/             # Custom React hooks
+│   ├── services/          # API service layer
+│   ├── utils/             # Utility functions
+│   └── types/             # TypeScript definitions
+├── server/                # Backend (NestJS)
+│   ├── src/
+│   │   ├── auth/          # Authentication module
+│   │   ├── users/         # User management
+│   │   ├── murmurs/       # Murmur operations
+│   │   └── database/      # Database configuration
+└── db/                    # Database setup
+    └── docker-compose.yml # MySQL container
+```
 
-- /src -> Frontend (React)
-- /server -> Backend (NestJS)
-- /db -> Database (MySQL 8.x)
+## 🚀 Getting Started
 
-### install modules
+### Prerequisites
 
-It is assumed that node(v20.x.x), npm and yarn are installed.
-The ability to build a development environment is also the subject of this test, so even if an error occurs, please resolve it on your own.
+- Node.js (v20.x.x)
+- npm/yarn
+- Docker & Docker Compose
 
-### setup project
-#### DB
-1. cd db && docker compose build
-1. docker compose up -d
+### Installation
 
-#### Server
-1. cd server && npm install
-1. npm run start:dev
+1. **Clone the repository**
 
-#### Client
-1. cd src && yarn install
-1. yarn dev
+   ```bash
+   git clone <repository-url>
+   cd murmur-app
+   ```
 
+2. **Setup Database**
 
-### How to confirm to success to build environment
-1. You access to http://localhost:3000/
-1. It's success if render html.
+   ```bash
+   cd db
+   docker compose build
+   docker compose up -d
+   ```
+
+3. **Setup Backend**
+
+   ```bash
+   cd server
+   npm install
+   npm run start:dev
+   ```
+
+4. **Setup Frontend**
+
+   ```bash
+   cd src
+   yarn install
+   yarn dev
+   ```
+
+5. **Access Application**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:3001
+
+## 📋 API Endpoints
+
+### Authentication
+
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Get current user
+
+### Murmurs
+
+- `GET /api/murmurs` - Get timeline murmurs (paginated)
+- `GET /api/murmurs/:id` - Get specific murmur
+- `POST /api/me/murmurs` - Create new murmur
+- `DELETE /api/me/murmurs/:id` - Delete own murmur
+- `POST /api/murmurs/:id/like` - Toggle like on murmur
+
+### Users
+
+- `GET /api/users` - Get all users
+- `GET /api/users/search` - Search users by name/username
+- `GET /api/users/:id` - Get user profile
+- `GET /api/users/:id/murmurs` - Get user's murmurs
+- `POST /api/users/:id/follow` - Follow user
+- `DELETE /api/users/:id/follow` - Unfollow user
+
+## 🎯 Key Features Implemented
+
+### Professional Architecture
+
+- **Service Layer Pattern** - Clean separation of concerns
+- **Custom Hooks** - Reusable business logic
+- **Route-Specific Data Loading** - Optimized API calls
+- **Error Handling** - Comprehensive error management
+
+### User Experience
+
+- **Instant Feedback** - Optimistic updates for likes and follows
+- **Smart Search** - Debounced with result caching
+- **Responsive Design** - Works on all device sizes
+- **Loading States** - Clear feedback during operations
+
+### Performance
+
+- **Minimal API Calls** - Smart caching prevents redundant requests
+- **Optimized Rendering** - Efficient React patterns
+- **Fast Navigation** - Client-side routing
+- **Database Optimization** - Efficient queries with pagination
+
+## 🔧 Development Features
+
+### Code Quality
+
+- **TypeScript** - Full type safety
+- **ESLint** - Code quality enforcement
+- **Component Architecture** - Modular and reusable
+- **Clean Code** - Professional patterns and practices
+
+### Developer Experience
+
+- **Hot Reload** - Instant development feedback
+- **Error Boundaries** - Graceful error handling
+- **Development Tools** - Comprehensive debugging support
+
+## 🎨 UI/UX Features
+
+- **Clean Interface** - Minimalist Twitter-like design
+- **Intuitive Navigation** - Easy-to-use routing
+- **Visual Feedback** - Loading spinners and state indicators
+- **Responsive Layout** - Mobile-first design approach
+- **Accessibility** - Keyboard navigation and screen reader support
+
+## 🔒 Security Features
+
+- **JWT Authentication** - Secure token-based auth
+- **Protected Routes** - Authentication guards
+- **Input Validation** - Server-side validation
+- **XSS Protection** - Safe content rendering
+
+---
+
+**Status**: ✅ All core features implemented and fully functional
+**Last Updated**: December 2024
